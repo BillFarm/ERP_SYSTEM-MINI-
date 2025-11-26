@@ -14,7 +14,7 @@ except:
 
 st.title("Mini ERP App")
 
-menu = ["Add Sale", "View Data", "Save Data", "Load Data"]
+menu = ["Add Sale", "View Data", "Save Data", "Load Data", "Sales Chart"]
 choice = st.sidebar.selectbox("Choose an option", menu)
 
 if choice == "Add Sale":
@@ -90,3 +90,11 @@ elif choice == "Load Data":
         st.success("Data loaded successfully!")
     except:
         st.error("Can't load file!")
+
+elif choice == "Sales Chart":
+    st.header("Total Sales per Product")
+    if data.empty:
+        st.write("No data to display!")
+    else:
+        chart_data = data.groupby("Product")["Total Sales"].sum().reset_index()
+        st.bar_chart(chart_data.set_index("Product"))
