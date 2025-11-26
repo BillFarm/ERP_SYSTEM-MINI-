@@ -7,7 +7,8 @@ try:
     data = pd.read_csv("erp_data.csv")
 except:
     data = pd.DataFrame(columns=[
-        "Date", "Product", "Quantity", "Price", "Cost", "Total Sales", "Profit"
+        "Date", "Product", "Quantity", "Price",
+        "Cost per Unit", "Total Cost", "Total Sales", "Profit"
     ])
 
 st.title("Mini ERP App")
@@ -21,11 +22,12 @@ if choice == "Add Sale":
     product = st.text_input("Product:")
     quantity = st.number_input("Quantity:", min_value=1, value=1)
     price = st.number_input("Price:", min_value=0.0, value=0.0, step=0.01)
-    cost = st.number_input("Cost:", min_value=0.0, value=0.0, step=0.01)
+    cost_per_unit = st.number_input("Cost per unit:", min_value=0.0, value=0.0, step=0.01)
 
     if st.button("Add Sale"):
-        total = quantity * price
-        profit = total - cost
+        total_sales = quantity * price
+        total_cost = quantity * cost_per_unit
+        profit = total_sales - total_cost
         date = datetime.now().strftime("%Y-%m-%d")
 
         new_row = {
@@ -33,8 +35,9 @@ if choice == "Add Sale":
             "Product": product,
             "Quantity": quantity,
             "Price": price,
-            "Cost": cost,
-            "Total Sales": total,
+            "Cost per Unit": cost_per_unit,
+            "Total Cost": total_cost,
+            "Total Sales": total_sales,
             "Profit": profit
         }
 
