@@ -5,6 +5,9 @@ from datetime import datetime
 # Προσπάθεια ανάγνωσης αρχείου CSV, αν δεν υπάρχει δημιουργείται κενό DataFrame
 try:
     data = pd.read_csv("erp_data.csv")
+    # Αν το CSV έχει παλιά στήλη "Cost", τη μετονομάζουμε ΜΟΝΟ
+    if "Cost" in data.columns:
+        data = data.rename(columns={"Cost": "Cost per Unit"})
 except:
     data = pd.DataFrame(columns=[
         "Date", "Product", "Quantity", "Price",
@@ -13,7 +16,6 @@ except:
 
 st.title("Mini ERP App")
 
-# Μενού επιλογών
 menu = ["Add Sale", "View Data", "Save Data", "Load Data"]
 choice = st.sidebar.selectbox("Choose an option", menu)
 
@@ -22,7 +24,7 @@ if choice == "Add Sale":
     product = st.text_input("Product:")
     quantity = st.number_input("Quantity:", min_value=1, value=1)
     price = st.number_input("Price:", min_value=0.0, value=0.0, step=0.01)
-    cost_per_unit = st.number_input("Cost per unit:", min_value=0.0, value=0.0, step=0.01)
+    cost_per_unit = st.number_input("Cost per Unit:", min_value=0.0, value=0.0, step=0.01)
 
     if st.button("Add Sale"):
         total_sales = quantity * price
