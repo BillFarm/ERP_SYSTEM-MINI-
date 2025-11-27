@@ -53,7 +53,7 @@ if "data" not in st.session_state:
     st.session_state.data = None
 
 if not st.session_state.logged_in:
-    st.title("Login / Register")
+    st.title("Mini ERP App - Login / Register")
     action = st.selectbox("Action", ["Login","Register"])
     
     if action == "Register":
@@ -79,7 +79,6 @@ if not st.session_state.logged_in:
     st.stop()
 
 st.title(f"Mini ERP App - {st.session_state.username}")
-
 data = st.session_state.data if st.session_state.data is not None else load_user_data(st.session_state.username)
 
 menu = ["Add Sale","View Data","Save Data","Load Data","Sales Chart","Logout"]
@@ -89,7 +88,7 @@ if choice == "Logout":
     st.session_state.logged_in = False
     st.session_state.username = None
     st.session_state.data = None
-    st.experimental_rerun()
+    st.stop()
 
 if choice == "Add Sale":
     st.header("Add a Sale")
