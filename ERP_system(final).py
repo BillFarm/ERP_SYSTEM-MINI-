@@ -1,28 +1,96 @@
 import streamlit as st
 import pandas as pd
+import hashlib
 from datetime import datetime
+import os
 
-def load_data():
-    try:
-        df = pd.read_csv("erp_data.csv")
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def load_users():
+    if os.path.exists("users.csv"):
+        return pd.read_csv("users.csv")
+    return pd.DataFrame(columns=["username","password"])
+
+def save_users(df):
+    df.to_csv("users.csv", index=False)
+
+def register_user(username, password):
+    users = load_users()
+    if username in users["username"].values:
+        return False
+    new_user = pd.DataFrame([[username, hash_password(password)]], columns=["username","password"])
+    users = pd.concat([users, new_user], ignore_index=True)
+    save_users(users)
+    return True
+
+def login_user(username, password):
+    users = load_users()
+    if username in users["username"].values:
+        return users.loc[users["username"]==username, "password"].values[0] == hash_password(password)
+    return False
+
+def user_filename(username):
+    return f"erp_{username}.csv"
+
+def load_user_data(username):
+    fn = user_filename(username)
+    if os.path.exists(fn):
+        df = pd.read_csv(fn)
         if "Cost" in df.columns:
-            df = df.rename(columns={"Cost": "Cost per Unit"})
+            df = df.rename(columns={"Cost":"Cost per Unit"})
         return df
-    except:
-        return pd.DataFrame(columns=[
-            "Date", "Product", "Quantity", "Price",
-            "Cost per Unit", "Total Cost", "Total Sales", "Profit"
-        ])
+    return pd.DataFrame(columns=["Date","Product","Quantity","Price","Cost per Unit","Total Cost","Total Sales","Profit"])
 
+def save_user_data(username, df):
+    fn = user_filename(username)
+    df.to_csv(fn, index=False)
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "username" not in st.session_state:
+    st.session_state.username = None
 if "data" not in st.session_state:
-    st.session_state.data = load_data()
+    st.session_state.data = None
 
-data = st.session_state.data
+if not st.session_state.logged_in:
+    st.title("Login / Register")
+    action = st.sidebar.selectbox("Action", ["Login","Register"])
+    if action == "Register":
+        new_user = st.text_input("New username")
+        new_pass = st.text_input("New password", type="password")
+        if st.button("Create account"):
+            if new_user and new_pass:
+                if register_user(new_user, new_pass):
+                    st.success("User created. Please log in.")
+                else:
+                    st.error("Username already exists.")
+    else:
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if login_user(username, password):
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.session_state.data = load_user_data(username)
+                st.success(f"Logged in as {username}")
+                st.experimental_rerun()
+            else:
+                st.error("Invalid credentials")
+    st.stop()
 
-st.title("Mini ERP App")
+st.title(f"Mini ERP App - {st.session_state.username}")
 
-menu = ["Add Sale", "View Data", "Save Data", "Load Data", "Sales Chart"]
+data = st.session_state.data if st.session_state.data is not None else load_user_data(st.session_state.username)
+
+menu = ["Add Sale","View Data","Save Data","Load Data","Sales Chart","Logout"]
 choice = st.sidebar.selectbox("Choose an option", menu)
+
+if choice == "Logout":
+    st.session_state.logged_in = False
+    st.session_state.username = None
+    st.session_state.data = None
+    st.experimental_rerun()
 
 if choice == "Add Sale":
     st.header("Add a Sale")
@@ -30,13 +98,11 @@ if choice == "Add Sale":
     quantity = st.number_input("Quantity:", min_value=1, value=1)
     price = st.number_input("Price:", min_value=0.0, value=0.0, step=0.01)
     cost_per_unit = st.number_input("Cost per Unit:", min_value=0.0, value=0.0, step=0.01)
-
     if st.button("Add Sale"):
         total_sales = quantity * price
         total_cost = quantity * cost_per_unit
         profit = total_sales - total_cost
         date = datetime.now().strftime("%Y-%m-%d")
-
         new_row = pd.DataFrame([{
             "Date": date,
             "Product": product,
@@ -47,10 +113,10 @@ if choice == "Add Sale":
             "Total Sales": total_sales,
             "Profit": profit
         }])
-
-        st.session_state.data = pd.concat([data, new_row], ignore_index=True)
-        st.session_state.data.to_csv("erp_data.csv", index=False)
-        st.success(f"Sale added successfully: {product}")
+        data = pd.concat([data, new_row], ignore_index=True)
+        st.session_state.data = data
+        save_user_data(st.session_state.username, data)
+        st.success(f"Sale added: {product}")
 
 elif choice == "View Data":
     st.header("Sales Data")
@@ -58,18 +124,13 @@ elif choice == "View Data":
         st.write("No data yet!")
     else:
         st.dataframe(data)
-        row_index = st.number_input(
-            "Select row index to edit/delete:",
-            min_value=0, max_value=len(data)-1, step=1
-        )
-
+        row_index = st.number_input("Select row index to edit/delete:", min_value=0, max_value=len(data)-1, step=1)
         if st.checkbox("Edit selected row"):
             row = data.loc[row_index]
             new_product = st.text_input("Product:", value=row["Product"])
             new_quantity = st.number_input("Quantity:", min_value=1, value=int(row["Quantity"]))
             new_price = st.number_input("Price:", min_value=0.0, value=float(row["Price"]), step=0.01)
             new_cost = st.number_input("Cost per Unit:", min_value=0.0, value=float(row["Cost per Unit"]), step=0.01)
-
             if st.button("Update Row"):
                 data.at[row_index, "Product"] = new_product
                 data.at[row_index, "Quantity"] = new_quantity
@@ -78,24 +139,22 @@ elif choice == "View Data":
                 data.at[row_index, "Total Sales"] = new_quantity * new_price
                 data.at[row_index, "Total Cost"] = new_quantity * new_cost
                 data.at[row_index, "Profit"] = data.at[row_index, "Total Sales"] - data.at[row_index, "Total Cost"]
-
                 st.session_state.data = data
-                st.session_state.data.to_csv("erp_data.csv", index=False)
+                save_user_data(st.session_state.username, data)
                 st.success("Row updated successfully!")
-
         if st.checkbox("Delete selected row"):
             if st.button("Delete Row"):
                 data = data.drop(row_index).reset_index(drop=True)
                 st.session_state.data = data
-                st.session_state.data.to_csv("erp_data.csv", index=False)
+                save_user_data(st.session_state.username, data)
                 st.success("Row deleted successfully!")
 
 elif choice == "Save Data":
-    st.session_state.data.to_csv("erp_data.csv", index=False)
+    save_user_data(st.session_state.username, data)
     st.success("Data saved successfully!")
 
 elif choice == "Load Data":
-    st.session_state.data = load_data()
+    st.session_state.data = load_user_data(st.session_state.username)
     st.success("Data loaded successfully!")
 
 elif choice == "Sales Chart":
