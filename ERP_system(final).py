@@ -61,17 +61,16 @@ if not st.session_state.logged_in:
             new_user = st.text_input("New username")
             new_pass = st.text_input("New password", type="password")
             submitted = st.form_submit_button("Create account")
-            if submitted:
-                if new_user and new_pass:
-                    if register_user(new_user, new_pass):
-                        st.success("User created. Please log in.")
-                    else:
-                        st.error("Username already exists.")
+            if submitted and new_user and new_pass:
+                if register_user(new_user, new_pass):
+                    st.success("User created. Please log in.")
+                else:
+                    st.error("Username already exists.")
         else:
             username = st.text_input("Username")
             password = st.text_input("Password", type="password")
             submitted = st.form_submit_button("Login")
-            if submitted:
+            if submitted and username and password:
                 if login_user(username, password):
                     st.session_state.logged_in = True
                     st.session_state.username = username
