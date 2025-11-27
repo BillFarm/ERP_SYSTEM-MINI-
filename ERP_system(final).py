@@ -43,8 +43,7 @@ def load_user_data(username):
     return pd.DataFrame(columns=["Date","Product","Quantity","Price","Cost per Unit","Total Cost","Total Sales","Profit"])
 
 def save_user_data(username, df):
-    fn = user_filename(username)
-    df.to_csv(fn, index=False)
+    df.to_csv(user_filename(username), index=False)
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -55,7 +54,8 @@ if "data" not in st.session_state:
 
 if not st.session_state.logged_in:
     st.title("Login / Register")
-    action = st.sidebar.selectbox("Action", ["Login","Register"])
+    action = st.selectbox("Action", ["Login","Register"])
+    
     if action == "Register":
         new_user = st.text_input("New username")
         new_pass = st.text_input("New password", type="password")
@@ -74,7 +74,6 @@ if not st.session_state.logged_in:
                 st.session_state.username = username
                 st.session_state.data = load_user_data(username)
                 st.success(f"Logged in as {username}")
-                st.experimental_rerun()
             else:
                 st.error("Invalid credentials")
     st.stop()
@@ -84,7 +83,7 @@ st.title(f"Mini ERP App - {st.session_state.username}")
 data = st.session_state.data if st.session_state.data is not None else load_user_data(st.session_state.username)
 
 menu = ["Add Sale","View Data","Save Data","Load Data","Sales Chart","Logout"]
-choice = st.sidebar.selectbox("Choose an option", menu)
+choice = st.selectbox("Choose an option", menu)
 
 if choice == "Logout":
     st.session_state.logged_in = False
