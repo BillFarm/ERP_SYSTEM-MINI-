@@ -55,6 +55,7 @@ if "data" not in st.session_state:
 if not st.session_state.logged_in:
     st.title("Mini ERP App - Login / Register")
     action = st.selectbox("Action", ["Login","Register"])
+
     with st.form(key="auth_form"):
         if action == "Register":
             new_user = st.text_input("New username")
@@ -74,6 +75,7 @@ if not st.session_state.logged_in:
                     st.session_state.logged_in = True
                     st.session_state.username = username
                     st.session_state.data = load_user_data(username)
+                    st.success(f"Logged in as {username}")
                 else:
                     st.error("Invalid credentials")
     st.stop()
@@ -88,7 +90,7 @@ if choice == "Logout":
     st.session_state.logged_in = False
     st.session_state.username = None
     st.session_state.data = None
-    st.experimental_rerun()
+    st.stop()
 
 if choice == "Add Sale":
     st.header("Add a Sale")
